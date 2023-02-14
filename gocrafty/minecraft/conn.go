@@ -119,6 +119,7 @@ func (c *Conn) handlePacket(p packet.Packet) {
 					}
 
 					c.listener.playerCount.Add(1)
+					defer c.listener.playerCount.Add(-1)
 
 					// TODO: Send login success packet
 					c.WritePacket(&login.Disconnect{

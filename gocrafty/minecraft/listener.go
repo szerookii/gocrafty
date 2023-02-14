@@ -90,7 +90,6 @@ func (l *Listener) createConn(netConn net.Conn) {
 func (l *Listener) handleConn(conn *Conn) {
 	defer func() {
 		conn.Close()
-		l.playerCount.Add(-1)
 
 		if r := recover(); r != nil {
 			l.logger.Debugf("panic in connection handler: %v", r)
