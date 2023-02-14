@@ -1,6 +1,8 @@
 package logger
 
 type Logger interface {
+	SetLevel(level string)
+
 	Info(v ...any)
 	Error(v ...any)
 	Debug(v ...any)

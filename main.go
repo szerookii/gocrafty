@@ -11,13 +11,14 @@ import (
 
 func main() {
 	log := logger.Default()
-
 	log.Infof("Starting Gocrafty for Minecraft v%s", minecraft.Version)
 
 	conf, err := readConfig()
 	if err != nil {
 		log.Fatal("read config: %v", err)
 	}
+
+	log.SetLevel(conf.LogLevel)
 
 	srv := gocrafty.NewServer(conf)
 

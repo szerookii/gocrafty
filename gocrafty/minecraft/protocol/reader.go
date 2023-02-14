@@ -1,198 +1,126 @@
 package protocol
 
 import (
-	"io"
-	"unsafe"
+	"encoding/binary"
+	"fmt"
+	"math"
 )
 
+// Reader is a wrapper around an io.Reader that provides methods to read, it's big endian
 type Reader struct {
-	r interface {
-		io.Reader
-		io.ByteReader
+	Data   []byte
+	offset int
+}
+
+func (r *Reader) Read(p []byte) (int, error) {
+	n := copy(p, r.Data[r.offset:])
+	r.offset += n
+
+	return n, nil
+}
+
+func (r *Reader) ReadBytes(size int) []byte {
+	if r.offset+size > len(r.Data) {
+		panic("Out of bounds")
+	}
+
+	Data := r.Data[r.offset : r.offset+size]
+	r.offset += size
+
+	return Data
+}
+
+func (r *Reader) Bool() bool {
+	b := r.Byte()
+
+	if b == 0x01 {
+		return true
+	} else if b == 0x00 {
+		return false
+	} else {
+		panic(fmt.Sprintf("Invalid boolean value: %d", b))
 	}
 }
 
-// NewReader creates a new Reader using the io.ByteReader passed as underlying source to read bytes from.
-func NewReader(r interface {
-	io.Reader
-	io.ByteReader
-}) *Reader {
-	return &Reader{r: r}
-}
-
-func (r *Reader) Bool(x *bool) {
-	u, err := r.r.ReadByte()
-
-	if err != nil {
-		panic(err)
-	}
-
-	*x = *(*bool)(unsafe.Pointer(&u))
-}
-
-func (r *Reader) Byte(x *int8) {
-	var b uint8
-
-	r.UByte(&b)
-	*x = int8(b)
-}
-
-func (r *Reader) UByte(x *uint8) {
-	var err error
-	*x, err = r.r.ReadByte()
-
-	if err != nil {
-		panic(err)
-	}
+func (r *Reader) Byte() byte {
+	return r.ReadBytes(1)[0]
 }
 
 func (r *Reader) Short(x *int16) {
-	b := make([]byte, 2)
-
-	if _, err := r.r.Read(b); err != nil {
-		panic(err)
-	}
-
-	*x = *(*int16)(unsafe.Pointer(&b[0]))
+	*x = int16(binary.BigEndian.Uint16(r.ReadBytes(2)))
 }
 
 func (r *Reader) UShort(x *uint16) {
-	b := make([]byte, 2)
-
-	if _, err := r.r.Read(b); err != nil {
-		panic(err)
-	}
-
-	*x = *(*uint16)(unsafe.Pointer(&b[0]))
+	*x = binary.BigEndian.Uint16(r.ReadBytes(2))
 }
 
 func (r *Reader) Int(x *int32) {
-	b := make([]byte, 4)
-
-	if _, err := r.r.Read(b); err != nil {
-		panic(err)
-	}
-
-	*x = *(*int32)(unsafe.Pointer(&b[0]))
+	*x = int32(binary.BigEndian.Uint32(r.ReadBytes(4)))
 }
 
 func (r *Reader) UInt(x *uint32) {
-	b := make([]byte, 4)
-
-	if _, err := r.r.Read(b); err != nil {
-		panic(err)
-	}
-
-	*x = *(*uint32)(unsafe.Pointer(&b[0]))
+	*x = binary.BigEndian.Uint32(r.ReadBytes(4))
 }
 
 func (r *Reader) Long(x *int64) {
-	b := make([]byte, 8)
-
-	if _, err := r.r.Read(b); err != nil {
-		panic(err)
-	}
-
-	*x = *(*int64)(unsafe.Pointer(&b[0]))
+	*x = int64(binary.BigEndian.Uint64(r.ReadBytes(8)))
 }
 
 func (r *Reader) ULong(x *uint64) {
-	b := make([]byte, 8)
-
-	if _, err := r.r.Read(b); err != nil {
-		panic(err)
-	}
-
-	*x = *(*uint64)(unsafe.Pointer(&b[0]))
+	*x = binary.BigEndian.Uint64(r.ReadBytes(8))
 }
 
 func (r *Reader) Float(x *float32) {
-	b := make([]byte, 4)
-
-	if _, err := r.r.Read(b); err != nil {
-		panic(err)
-	}
-
-	*x = *(*float32)(unsafe.Pointer(&b[0]))
+	*x = math.Float32frombits(binary.BigEndian.Uint32(r.ReadBytes(4)))
 }
 
 func (r *Reader) Double(x *float64) {
-	b := make([]byte, 8)
-
-	if _, err := r.r.Read(b); err != nil {
-		panic(err)
-	}
-
-	*x = *(*float64)(unsafe.Pointer(&b[0]))
+	*x = math.Float64frombits(binary.BigEndian.Uint64(r.ReadBytes(8)))
 }
 
 func (r *Reader) String(x *string) {
-	var (
-		length int32
-		b      []byte
-		err    error
-	)
+	var l int32
+	r.VarInt(&l)
 
-	r.VarInt(&length)
-	b = make([]byte, length)
-
-	if _, err = r.r.Read(b); err != nil {
-		panic(err)
-	}
-
-	*x = *(*string)(unsafe.Pointer(&b))
+	*x = string(r.ReadBytes(int(l)))
 }
 
-// TODO: Identifier
-
 func (r *Reader) VarInt(x *int32) {
-	var (
-		b   uint8
-		err error
-	)
+	numRead := 0
+	result := int32(0)
+	for {
+		read := r.Byte()
+		value := read & 0b01111111
+		result |= int32(value) << (7 * numRead)
 
-	*x = 0
-	for i := uint(0); i < 5; i++ {
-		b, err = r.r.ReadByte()
-
-		if err != nil {
-			panic(err)
+		numRead++
+		if numRead > 5 {
+			panic("Varint is too big")
 		}
 
-		*x |= int32(b&0x7f) << (7 * i)
-
-		if b&0x80 == 0 {
+		if (read & 0b10000000) == 0 {
+			*x = result
 			return
 		}
 	}
-
-	panic("VarInt too big")
 }
 
 func (r *Reader) VarLong(x *int64) {
-	var (
-		b   uint8
-		err error
-	)
+	numRead := 0
+	result := int64(0)
+	for {
+		read := r.Byte()
+		value := read & 0b01111111
+		result |= int64(value) << (7 * numRead)
 
-	*x = 0
-	for i := uint(0); i < 10; i++ {
-		b, err = r.r.ReadByte()
-
-		if err != nil {
-			panic(err)
+		numRead++
+		if numRead > 10 {
+			panic("Varlong is too big")
 		}
 
-		*x |= int64(b&0x7f) << (7 * i)
-
-		if b&0x80 == 0 {
+		if (read & 0b10000000) == 0 {
+			*x = result
 			return
 		}
 	}
-
-	panic("VarLong too big")
-}
-
-func (r *Reader) Read(b []byte) (n int, err error) {
-	return r.r.Read(b)
 }

@@ -109,14 +109,18 @@ func (l *Listener) handleConn(conn *Conn) {
 		_, err := conn.ReadPacket()
 
 		if err != nil {
-			if err == io.EOF && conn.State == StatePlay {
-				l.logger.Errorf("error reading packet: %v", err)
-			}
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					// socket closed, ignore
+				} else {
+					l.logger.Errorf("Got an error recving packet: %v", err)
+				}
 
-			return
+				break
+			}
 		}
 
-		// TODO: Handle
+		// TODO: make working with handlers
 	}
 }
 

@@ -1,6 +1,6 @@
 module github.com/szerookii/gocrafty
 
-go 1.19
+go 1.18
 
 require (
 	github.com/kataras/golog v0.1.8 // indirect

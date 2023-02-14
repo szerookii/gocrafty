@@ -1,97 +1,126 @@
 package protocol
 
 import (
-	"io"
-	"unsafe"
+	"bytes"
+	"encoding/binary"
+	"encoding/json"
+	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
 
 type Writer struct {
-	w interface {
-		io.Writer
-		io.ByteWriter
-	}
+	bytes.Buffer
 }
 
-func NewWriter(w interface {
-	io.Writer
-	io.ByteWriter
-}) *Writer {
-	return &Writer{w: w}
+func (w *Writer) Bytes() []byte {
+	return w.Buffer.Bytes()[:w.Buffer.Len()]
+}
+
+func (w *Writer) WriteBytes(data []byte) {
+	w.Buffer.Write(data)
 }
 
 func (w *Writer) Bool(x bool) {
-	_ = w.w.WriteByte(*(*byte)(unsafe.Pointer(&x)))
-}
-
-func (w *Writer) Byte(x int8) {
-	w.w.WriteByte(byte(x) & 0xff)
-}
-
-func (w *Writer) UByte(x uint8) {
-	w.w.WriteByte(x)
+	if x {
+		_ = w.WriteByte(0x01)
+	} else {
+		_ = w.WriteByte(0x00)
+	}
 }
 
 func (w *Writer) Short(x int16) {
-	data := *(*[2]byte)(unsafe.Pointer(&x))
-	_, _ = w.w.Write(data[:])
+	w.Grow(2)
+	_ = binary.Write(&w.Buffer, binary.BigEndian, x)
 }
 
 func (w *Writer) UShort(x uint16) {
-	data := *(*[2]byte)(unsafe.Pointer(&x))
-	_, _ = w.w.Write(data[:])
+	_ = binary.Write(&w.Buffer, binary.BigEndian, x)
 }
 
 func (w *Writer) Int(x int32) {
-	data := *(*[4]byte)(unsafe.Pointer(&x))
-	_, _ = w.w.Write(data[:])
+	_ = binary.Write(&w.Buffer, binary.BigEndian, x)
 }
 
 func (w *Writer) UInt(x uint32) {
-	data := *(*[4]byte)(unsafe.Pointer(&x))
-	_, _ = w.w.Write(data[:])
+	_ = binary.Write(&w.Buffer, binary.BigEndian, x)
 }
 
 func (w *Writer) Long(x int64) {
-	data := *(*[8]byte)(unsafe.Pointer(&x))
-	_, _ = w.w.Write(data[:])
+	_ = binary.Write(&w.Buffer, binary.BigEndian, x)
 }
 
 func (w *Writer) ULong(x uint64) {
-	data := *(*[8]byte)(unsafe.Pointer(&x))
-	_, _ = w.w.Write(data[:])
+	_ = binary.Write(&w.Buffer, binary.BigEndian, x)
 }
 
 func (w *Writer) Float(x float32) {
-	data := *(*[4]byte)(unsafe.Pointer(&x))
-	_, _ = w.w.Write(data[:])
+	_ = binary.Write(&w.Buffer, binary.BigEndian, x)
 }
 
 func (w *Writer) Double(x float64) {
-	data := *(*[8]byte)(unsafe.Pointer(&x))
-	_, _ = w.w.Write(data[:])
+	_ = binary.Write(&w.Buffer, binary.BigEndian, x)
 }
 
 func (w *Writer) String(x string) {
 	w.VarInt(int32(len(x)))
-	_, _ = w.w.Write([]byte(x))
+	w.Buffer.WriteString(x)
 }
 
 // TODO: Identifier
 
 func (w *Writer) VarInt(x int32) {
-	for x >= 0x80 {
-		_ = w.w.WriteByte(byte(x&0x7f) | 0x80)
-		x >>= 7
-	}
+	raw := uint32(x)
 
-	_ = w.w.WriteByte(byte(x))
+	for {
+		temp := byte(raw & 0b01111111)
+		raw >>= 7
+
+		if raw != 0 {
+			temp |= 0b10000000
+		}
+
+		_ = w.WriteByte(temp)
+
+		if raw == 0 {
+			break
+		}
+	}
 }
 
 func (w *Writer) VarLong(x int64) {
-	for x >= 0x80 {
-		_ = w.w.WriteByte(byte(x&0x7f) | 0x80)
-		x >>= 7
+	raw := uint64(x)
+
+	for {
+		temp := byte(raw & 0b01111111)
+		raw >>= 7
+
+		if raw != 0 {
+			temp |= 0b10000000
+		}
+
+		w.WriteByte(temp)
+
+		if raw == 0 {
+			break
+		}
+	}
+}
+
+// Utils
+
+func (w *Writer) Chat(x *types.Chat) {
+	b := x.JSON()
+
+	w.VarInt(int32(len(b)))
+	w.WriteBytes(b)
+}
+
+func (w *Writer) JSON(x any) {
+	b, err := json.Marshal(x)
+
+	if err != nil {
+		panic(err)
 	}
 
-	_ = w.w.WriteByte(byte(x))
+	w.VarInt(int32(len(b)))
+	w.WriteBytes(b)
 }

@@ -1,6 +1,10 @@
-package packet
+package handshake
 
-import "github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
+import (
+	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
+	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets"
+	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
+)
 
 const (
 	NextStateStatus = 1
@@ -15,7 +19,11 @@ type Handshake struct {
 }
 
 func (h *Handshake) ID() int32 {
-	return IDHandshake
+	return packets.IDHandshake
+}
+
+func (h *Handshake) State() int32 {
+	return types.StateHandshaking
 }
 
 func (h *Handshake) Marshal(w *protocol.Writer) {

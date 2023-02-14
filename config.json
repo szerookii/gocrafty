@@ -1,4 +1,5 @@
 {
+	"log_level": "debug",
 	"bound_address": ":25565",
 	"max_players": 20,
 	"online_mode": true,

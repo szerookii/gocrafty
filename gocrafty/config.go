@@ -4,7 +4,9 @@ import "github.com/szerookii/gocrafty/gocrafty/logger"
 
 type ServerConfig struct {
 	// Logger is the logger used by the server.
-	Logger logger.Logger `json:"-"`
+	Logger   logger.Logger `json:"-"`
+	LogLevel string        `json:"log_level"`
+
 	// BoundAddress is the address the server will bind to.
 	BoundAddress string `json:"bound_address"`
 
@@ -19,6 +21,7 @@ type ServerConfig struct {
 func DefaultConfig() ServerConfig {
 	return ServerConfig{
 		Logger:       logger.Default(),
+		LogLevel:     "info",
 		BoundAddress: ":25565",
 
 		MaxPlayers: 20,

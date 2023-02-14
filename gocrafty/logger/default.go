@@ -8,6 +8,10 @@ func Default() *DefaultLogger {
 	return &DefaultLogger{}
 }
 
+func (l *DefaultLogger) SetLevel(level string) {
+	golog.SetLevel(level)
+}
+
 func (l *DefaultLogger) Info(v ...interface{}) {
 	golog.Info(v...)
 }
