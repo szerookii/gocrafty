@@ -24,7 +24,7 @@ type Conn struct {
 
 	// The buffer used for recving data
 	recvBuffer   [65565]byte
-	decompBuffer [65565]byte
+	decompBuffer [65565]byte // TODO: implement compression/decompression and give sense to this buffer cuz it's useless rn xd
 
 	State int32
 }
@@ -158,6 +158,11 @@ func (c *Conn) handlePacket(p packet.Packet) {
 						Text: c.listener.name,
 					},
 				},
+			})
+
+		case *status.PingRequest:
+			c.WritePacket(&status.PingResponse{
+				PingTime: p.(*status.PingRequest).PingTime,
 			})
 		}
 	}

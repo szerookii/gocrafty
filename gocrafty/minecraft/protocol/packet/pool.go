@@ -81,7 +81,14 @@ func (p Pool) Get(state int32, id int32) (Packet, bool) {
 }
 
 func init() {
+	// Handshake
 	Register(packets.IDHandshake, &handshake.Handshake{})
 
+	// Status
 	Register(packets.IDStatusRequest, &status.StatusRequest{})
+	Register(packets.IDPing, &status.PingRequest{})
+
+	// Login
+
+	// Play
 }
