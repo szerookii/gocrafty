@@ -3,10 +3,10 @@ package minecraft
 import (
 	"bufio"
 	"errors"
-	"github.com/kataras/golog"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/handshake"
+	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/login"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/status"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 	"io"
@@ -15,6 +15,8 @@ import (
 )
 
 type Conn struct {
+	listener *Listener
+
 	sendMutex sync.Mutex
 	conn      net.Conn
 
@@ -27,11 +29,12 @@ type Conn struct {
 	State int32
 }
 
-func NewConn(conn net.Conn) *Conn {
+func NewConn(listener *Listener, conn net.Conn) *Conn {
 	return &Conn{
-		conn:   conn,
-		reader: bufio.NewReader(conn),
-		State:  types.StateHandshaking,
+		listener: listener,
+		conn:     conn,
+		reader:   bufio.NewReader(conn),
+		State:    types.StateHandshaking,
 	}
 }
 
@@ -87,7 +90,8 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 }
 
 func (c *Conn) handlePacket(p packet.Packet) {
-	golog.Debugf("Packet received with ID: %d ", p.ID())
+	c.listener.logger.Debugf("Received packet with ID %d", p.ID())
+
 	switch c.State {
 
 	// Handshaking
@@ -101,14 +105,29 @@ func (c *Conn) handlePacket(p packet.Packet) {
 			case 2:
 				if dp.ProtocolVersion == ProtocolVersion {
 					c.State = types.StateLogin
+
+					if c.listener.playerCount.Load() >= int32(c.listener.maxPlayers) {
+						c.WritePacket(&login.Disconnect{
+							Reason: &types.Chat{
+								Text:  "Server is full",
+								Bold:  true,
+								Color: "red",
+							},
+						})
+
+						return
+					}
+
+					c.listener.playerCount.Add(1)
+
 					// TODO: Send login success packet
-					c.WritePacket(&handshake.Disconnect{
+					c.WritePacket(&login.Disconnect{
 						Reason: &types.Chat{
 							Text: "Not implemented yet",
 						},
 					})
 				} else {
-					c.WritePacket(&handshake.Disconnect{
+					c.WritePacket(&login.Disconnect{
 						Reason: &types.Chat{
 							Text:  "Invalid protocol version",
 							Bold:  true,
@@ -131,11 +150,11 @@ func (c *Conn) handlePacket(p packet.Packet) {
 						Protocol: ProtocolVersion,
 					},
 					Players: &status.StatusResponseDataPlayers{
-						Max:    100,
-						Online: 1,
+						Max:    int32(c.listener.maxPlayers),
+						Online: c.listener.playerCount.Load(),
 					},
 					Description: &status.StatusResponseDataDescription{
-						Text: "A Minecraft Server",
+						Text: c.listener.name,
 					},
 				},
 			})

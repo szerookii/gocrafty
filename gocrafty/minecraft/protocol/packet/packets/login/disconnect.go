@@ -1,4 +1,4 @@
-package handshake
+package login
 
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"

@@ -82,15 +82,7 @@ func (l *Listener) listen() {
 }
 
 func (l *Listener) createConn(netConn net.Conn) {
-	conn := NewConn(netConn)
-
-	if l.playerCount.Load() >= int32(l.maxPlayers) {
-		// TODO: kick player
-		conn.Close()
-		return
-	}
-
-	l.playerCount.Add(1)
+	conn := NewConn(l, netConn)
 
 	go l.handleConn(conn)
 }
