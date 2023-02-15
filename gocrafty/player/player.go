@@ -2,6 +2,7 @@ package player
 
 import (
 	"github.com/google/uuid"
+	"github.com/szerookii/gocrafty/gocrafty/logger"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/socket"
 	"sync"
 )
@@ -9,14 +10,18 @@ import (
 type Player struct {
 	sync.RWMutex
 
+	logger logger.Logger
+
 	username string
 	uuid     uuid.UUID
 
 	conn *socket.Conn
 }
 
-func New(username string, uuid uuid.UUID, session *socket.Conn) *Player {
+func New(logger logger.Logger, username string, uuid uuid.UUID, session *socket.Conn) *Player {
 	return &Player{
+		logger: logger,
+
 		username: username,
 		uuid:     uuid,
 		conn:     session,
@@ -46,4 +51,11 @@ func (p *Player) Conn() *socket.Conn {
 
 func (p *Player) Disconnect(reason string) {
 	p.Conn().Close(reason)
+}
+
+func (p *Player) Logger() logger.Logger {
+	p.RLock()
+	defer p.RUnlock()
+
+	return p.logger
 }

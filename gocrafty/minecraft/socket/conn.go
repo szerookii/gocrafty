@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 type Conn struct {
@@ -23,13 +24,13 @@ type Conn struct {
 	uuid     uuid.UUID
 
 	reader *bufio.Reader
-	rcvCh  chan packet.Packet
 
 	// The buffer used for recving data
 	recvBuffer   [65565]byte
 	decompBuffer [65565]byte // TODO: implement compression/decompression and give sense to this buffer cuz it's useless rn xd
 
 	State int32
+	close chan bool
 }
 
 func NewConn(conn net.Conn) *Conn {
@@ -39,6 +40,8 @@ func NewConn(conn net.Conn) *Conn {
 		conn:   conn,
 		reader: bufio.NewReader(conn),
 		State:  types.StateHandshaking,
+
+		close: make(chan bool),
 	}
 }
 
@@ -56,7 +59,7 @@ func (c *Conn) WritePacket(p packet.Packet) error {
 	c.sendMutex.Lock()
 	defer c.sendMutex.Unlock()
 
-	_, err := c.conn.Write(sendPacket.Bytes())
+	_, err := c.Write(sendPacket.Bytes())
 	if err != nil {
 		return err
 	}
@@ -91,6 +94,23 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 	return p, nil
 }
 
+func (c *Conn) KeepAliveTicker() {
+	ticker := time.NewTicker(20 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			c.WritePacket(&play.KeepAlive{
+				KeepAliveId: int32(time.Now().Unix()),
+			})
+
+		case <-c.close:
+			return
+		}
+	}
+}
+
 func (c *Conn) Username() string {
 	return c.username
 }
@@ -114,6 +134,10 @@ func (c *Conn) Close(reason string) error {
 			Color: "red",
 		},
 	})
+
+	c.State = types.StateDisconnect
+
+	close(c.close)
 
 	return c.conn.Close()
 }

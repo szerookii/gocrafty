@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/szerookii/gocrafty/gocrafty/logger"
+	"github.com/szerookii/gocrafty/gocrafty/minecraft/handler"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/handshake"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/login"
@@ -14,6 +15,7 @@ import (
 	"github.com/szerookii/gocrafty/gocrafty/player"
 	"io"
 	"net"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -114,7 +116,7 @@ func (l *Listener) handleConn(conn *socket.Conn) {
 		_ = conn.Close("")
 
 		if r := recover(); r != nil {
-			l.logger.Debugf("panic in connection handler: %v", r)
+			l.logger.Debugf("panic in connection handler: %v\n", string(debug.Stack()))
 		}
 	}()
 
@@ -142,7 +144,24 @@ func (l *Listener) handleConn(conn *socket.Conn) {
 			break
 		}
 
-		l.handlePacket(conn, p)
+		// packet handling
+		if conn.State == types.StatePlay {
+			pl, ok := l.players[conn.UUID().String()]
+			if !ok {
+				l.logger.Errorf("Got a packet from a player that is not in the player list")
+				break
+			}
+
+			handler, ok := handler.GetHandler(p.ID())
+			if !ok {
+				l.logger.Errorf("Got a packet but no handler for it: %v", p.ID())
+				continue
+			}
+
+			handler.Handle(pl, p)
+		} else {
+			l.handlePacket(conn, p)
+		}
 
 		select {
 		case <-l.close:
@@ -229,6 +248,7 @@ func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
 		switch dp := p.(type) {
 		case *login.LoginStart:
 			l.Logger().Infof("Player %s connected", dp.Username)
+			c.State = types.StatePlay
 
 			// TODO: Verify player online mode
 
@@ -261,7 +281,7 @@ func (l *Listener) AddPlayer(c *socket.Conn) {
 	l.pmu.Lock()
 	defer l.pmu.Unlock()
 
-	p := player.New(c.Username(), c.UUID(), c)
+	p := player.New(l.logger, c.Username(), c.UUID(), c)
 
 	if _, ok := l.players[c.UUID().String()]; ok {
 		p.Disconnect("You are already logged in!")
@@ -274,6 +294,8 @@ func (l *Listener) AddPlayer(c *socket.Conn) {
 	go func() {
 		l.incoming <- p
 	}()
+
+	go p.Conn().KeepAliveTicker()
 }
 
 func (l *Listener) RemovePlayer(p *player.Player) {

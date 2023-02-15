@@ -3,6 +3,7 @@ package packet
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/handshake"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/login"
+	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/play"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/status"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
@@ -92,4 +93,5 @@ func init() {
 	Register(login.IDLoginStart, &login.LoginStart{})
 
 	// Play
+	Register(play.IDKeepAlive, &play.KeepAlive{})
 }
