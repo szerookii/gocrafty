@@ -128,3 +128,12 @@ func (w *Writer) JSON(x any) {
 	w.VarInt(int32(len(b)))
 	w.WriteBytes(b)
 }
+
+func (writer *Writer) StartNBT() NbtWriter {
+	return NbtWriter{
+		w:                   writer,
+		hierarchy:           []uint8{},
+		listSizeStack:       []int{},
+		listSizeOffsetStack: []int{},
+	}
+}
