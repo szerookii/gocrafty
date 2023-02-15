@@ -15,5 +15,9 @@ func (h *KeepAliveHandler) PacketID() int32 {
 func (h *KeepAliveHandler) Handle(p *player.Player, packet packet.Packet) {
 	keepAlive, _ := packet.(*play.KeepAlive)
 
+	// TODO: Handle keep alive packet.
+	// Verify that the keep alive ID is the same as the one sent by the client.
+	// If not, kick the player.
+
 	p.Logger().Debugf("Received keep alive packet with ID %d", keepAlive.KeepAliveId)
 }
