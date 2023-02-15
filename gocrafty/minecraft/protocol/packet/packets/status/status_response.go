@@ -44,7 +44,7 @@ func (s *StatusResponse) ID() int32 {
 }
 
 func (s *StatusResponse) State() int32 {
-	return types.StateLogin
+	return 0 // not used
 }
 
 func (s *StatusResponse) Marshal(w *protocol.Writer) {
