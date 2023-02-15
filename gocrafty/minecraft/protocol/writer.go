@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"github.com/google/uuid"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
 
@@ -105,7 +106,10 @@ func (w *Writer) VarLong(x int64) {
 	}
 }
 
-// Utils
+func (w *Writer) WriteUUID(val uuid.UUID) {
+	b, _ := val.MarshalBinary()
+	w.WriteBytes(b)
+}
 
 func (w *Writer) Chat(x *types.Chat) {
 	b := x.JSON()

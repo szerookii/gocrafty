@@ -77,10 +77,15 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 	var packetId int32
 	reader.VarInt(&packetId)
 
+	c.listener.logger.Debugf("Connection state : %d", c.State)
+	c.listener.logger.Debugf("Received packet id : %d", packetId)
+
 	p, ok := pool.Get(c.State, packetId)
 	if !ok {
 		return nil, err
 	}
+
+	c.listener.logger.Debugf("Received packet : %T", p)
 
 	p.Unmarshal(&reader)
 
@@ -90,8 +95,6 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 }
 
 func (c *Conn) handlePacket(p packet.Packet) {
-	c.listener.logger.Debugf("Received packet with ID %d", p.ID())
-
 	switch c.State {
 
 	// Handshaking
@@ -104,8 +107,6 @@ func (c *Conn) handlePacket(p packet.Packet) {
 
 			case 2:
 				if dp.ProtocolVersion == ProtocolVersion {
-					c.State = types.StateLogin
-
 					if c.listener.playerCount.Load() >= int32(c.listener.maxPlayers) {
 						c.WritePacket(&login.Disconnect{
 							Reason: &types.Chat{
@@ -115,18 +116,15 @@ func (c *Conn) handlePacket(p packet.Packet) {
 							},
 						})
 
+						c.State = types.StateDisconnect
+
 						return
 					}
 
 					c.listener.playerCount.Add(1)
 					defer c.listener.playerCount.Add(-1)
 
-					// TODO: Send login success packet
-					c.WritePacket(&login.Disconnect{
-						Reason: &types.Chat{
-							Text: "Not implemented yet",
-						},
-					})
+					c.State = types.StateLogin
 				} else {
 					c.WritePacket(&login.Disconnect{
 						Reason: &types.Chat{
@@ -141,7 +139,7 @@ func (c *Conn) handlePacket(p packet.Packet) {
 
 	// Status
 	case types.StateStatus:
-		switch p.(type) {
+		switch dp := p.(type) {
 		case *status.StatusRequest:
 			// TODO: Send real data instead of hardcoded one
 			c.WritePacket(&status.StatusResponse{
@@ -162,8 +160,29 @@ func (c *Conn) handlePacket(p packet.Packet) {
 
 		case *status.PingRequest:
 			c.WritePacket(&status.PingResponse{
-				PingTime: p.(*status.PingRequest).PingTime,
+				PingTime: dp.PingTime,
 			})
+		}
+
+	// Login
+	case types.StateLogin:
+		switch dp := p.(type) {
+		case *login.LoginStart:
+			c.listener.logger.Infof("Player %s connected", dp.Username)
+
+			// TODO: Verify player online mode
+
+			// TODO: Support compression
+			c.WritePacket(&login.SetCompression{
+				Threshold: -1,
+			})
+
+			c.WritePacket(&login.LoginSuccess{
+				UUID:     "00000000-0000-0000-0000-000000000000",
+				Username: dp.Username,
+			})
+
+			// TODO: Add player to the world and send join game packet
 		}
 	}
 }

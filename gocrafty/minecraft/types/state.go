@@ -5,4 +5,5 @@ const (
 	StateStatus
 	StateLogin
 	StatePlay
+	StateDisconnect
 )

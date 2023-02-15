@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/szerookii/gocrafty/gocrafty/logger"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet"
+	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 	"io"
 	"net"
 	"sync/atomic"
@@ -36,7 +37,7 @@ func NewListener(logger logger.Logger, name, addr string, maxPlayers int) *Liste
 }
 
 func (l *Listener) Listen() (*Listener, error) {
-	listener, err := net.Listen("tcp4", l.address)
+	listener, err := net.Listen("tcp", l.address)
 
 	if err != nil {
 		return nil, errors.New("failed to listen on address " + l.address + ": " + err.Error())
@@ -109,6 +110,10 @@ func (l *Listener) handleConn(conn *Conn) {
 
 				break
 			}
+		}
+
+		if conn.State == types.StateDisconnect {
+			break
 		}
 
 		// TODO: make working with handlers

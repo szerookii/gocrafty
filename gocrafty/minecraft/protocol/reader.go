@@ -3,6 +3,7 @@ package protocol
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/google/uuid"
 	"math"
 )
 
@@ -30,20 +31,21 @@ func (r *Reader) ReadBytes(size int) []byte {
 	return Data
 }
 
-func (r *Reader) Bool() bool {
-	b := r.Byte()
+func (r *Reader) Bool(x *bool) {
+	var b byte
+	r.Byte(&b)
 
 	if b == 0x01 {
-		return true
+		*x = true
 	} else if b == 0x00 {
-		return false
+		*x = false
 	} else {
 		panic(fmt.Sprintf("Invalid boolean value: %d", b))
 	}
 }
 
-func (r *Reader) Byte() byte {
-	return r.ReadBytes(1)[0]
+func (r *Reader) Byte(x *byte) {
+	*x = r.ReadBytes(1)[0]
 }
 
 func (r *Reader) Short(x *int16) {
@@ -89,7 +91,9 @@ func (r *Reader) VarInt(x *int32) {
 	numRead := 0
 	result := int32(0)
 	for {
-		read := r.Byte()
+		var read byte
+		r.Byte(&read)
+
 		value := read & 0b01111111
 		result |= int32(value) << (7 * numRead)
 
@@ -109,7 +113,9 @@ func (r *Reader) VarLong(x *int64) {
 	numRead := 0
 	result := int64(0)
 	for {
-		read := r.Byte()
+		var read byte
+		r.Byte(&read)
+		
 		value := read & 0b01111111
 		result |= int64(value) << (7 * numRead)
 
@@ -123,4 +129,9 @@ func (r *Reader) VarLong(x *int64) {
 			return
 		}
 	}
+}
+
+func (r *Reader) ReadUUID(x *uuid.UUID) {
+	uuid, _ := uuid.FromBytes(r.ReadBytes(16))
+	*x = uuid
 }

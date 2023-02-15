@@ -3,6 +3,7 @@ package packet
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/handshake"
+	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/login"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets/status"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
@@ -89,6 +90,7 @@ func init() {
 	Register(packets.IDPing, &status.PingRequest{})
 
 	// Login
+	Register(packets.IDLoginStart, &login.LoginStart{})
 
 	// Play
 }
