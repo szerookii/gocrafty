@@ -28,6 +28,7 @@ func main() {
 	}
 
 	for {
+		srv.Accept()
 	}
 }
 

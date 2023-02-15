@@ -2,7 +2,6 @@ package login
 
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
-	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
 
@@ -11,7 +10,7 @@ type SetCompression struct {
 }
 
 func (d *SetCompression) ID() int32 {
-	return packets.IDSetCompression
+	return IDSetCompression
 }
 
 func (s *SetCompression) State() int32 {

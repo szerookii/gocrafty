@@ -3,24 +3,24 @@ package gocrafty
 import (
 	"errors"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft"
+	"github.com/szerookii/gocrafty/gocrafty/player"
 	"sync/atomic"
 )
 
 type Server struct {
-	// Config is the configuration of the server.
-	config *ServerConfig
-	// started is whether the server has been started or not.
-	started atomic.Bool
-	// listener is the listener of the server.
+	config   *ServerConfig
+	started  atomic.Bool
 	listener *minecraft.Listener
-	// conns is a map of all the connections to the server.
-	conns map[*minecraft.Conn]struct{}
+
+	incoming   chan *player.Player
+	disconnect chan *player.Player
 }
 
 func NewServer(config *ServerConfig) *Server {
 	return &Server{
-		config: config,
-		conns:  make(map[*minecraft.Conn]struct{}),
+		config:     config,
+		incoming:   make(chan *player.Player),
+		disconnect: make(chan *player.Player),
 	}
 }
 
@@ -29,7 +29,7 @@ func (s *Server) Listen() error {
 		return errors.New("server already started")
 	}
 
-	s.listener = minecraft.NewListener(s.config.Logger, s.config.ServerName, s.config.BoundAddress, s.config.MaxPlayers)
+	s.listener = minecraft.NewListener(s.incoming, s.disconnect, s.config.Logger, s.config.ServerName, s.config.BoundAddress, s.config.MaxPlayers, s.config.OnlineMode)
 
 	_, err := s.listener.Listen()
 
@@ -39,7 +39,21 @@ func (s *Server) Listen() error {
 
 	s.started.Store(true)
 
-	// TODO: ???
-
 	return nil
+}
+
+func (s *Server) Accept() bool {
+	if !s.started.Load() {
+		return false
+	}
+
+	p := <-s.incoming
+
+	s.config.Logger.Debugf("New connection from %s", p.Conn().RemoteAddr())
+
+	return true
+}
+
+func (s *Server) Listener() *minecraft.Listener {
+	return s.listener
 }

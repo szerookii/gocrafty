@@ -111,7 +111,7 @@ func (w *Writer) WriteUUID(val uuid.UUID) {
 	w.WriteBytes(b)
 }
 
-func (w *Writer) Chat(x *types.Chat) {
+func (w *Writer) Chat(x types.Chat) {
 	b := x.JSON()
 
 	w.VarInt(int32(len(b)))

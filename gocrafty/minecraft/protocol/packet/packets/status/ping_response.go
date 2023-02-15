@@ -2,8 +2,6 @@ package status
 
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
-	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets"
-	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
 
 type PingResponse struct {
@@ -11,11 +9,11 @@ type PingResponse struct {
 }
 
 func (s *PingResponse) ID() int32 {
-	return packets.IDPing
+	return IDPing
 }
 
 func (s *PingResponse) State() int32 {
-	return types.StateStatus
+	return 0 // not used
 }
 
 func (s *PingResponse) Marshal(w *protocol.Writer) {

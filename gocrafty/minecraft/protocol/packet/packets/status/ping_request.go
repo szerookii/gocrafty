@@ -2,7 +2,6 @@ package status
 
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
-	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
 
@@ -11,7 +10,7 @@ type PingRequest struct {
 }
 
 func (s *PingRequest) ID() int32 {
-	return packets.IDPing
+	return IDPing
 }
 
 func (s *PingRequest) State() int32 {

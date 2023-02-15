@@ -1,4 +1,4 @@
-package login
+package play
 
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
@@ -14,7 +14,7 @@ func (d *Disconnect) ID() int32 {
 }
 
 func (s *Disconnect) State() int32 {
-	return 0 // not used
+	return types.StatePlay
 }
 
 func (d *Disconnect) Marshal(w *protocol.Writer) {

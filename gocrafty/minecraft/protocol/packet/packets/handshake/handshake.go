@@ -2,7 +2,6 @@ package handshake
 
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
-	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
 
@@ -19,7 +18,7 @@ type Handshake struct {
 }
 
 func (h *Handshake) ID() int32 {
-	return packets.IDHandshake
+	return IDHandshake
 }
 
 func (h *Handshake) State() int32 {

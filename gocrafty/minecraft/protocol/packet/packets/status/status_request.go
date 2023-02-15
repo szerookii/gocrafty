@@ -2,14 +2,13 @@ package status
 
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
-	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
 
 type StatusRequest struct{}
 
 func (s *StatusRequest) ID() int32 {
-	return packets.IDStatusRequest
+	return IDStatusRequest
 }
 
 func (s *StatusRequest) State() int32 {

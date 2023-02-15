@@ -2,7 +2,6 @@ package status
 
 import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol"
-	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet/packets"
 )
 
 type StatusResponseDataVersion struct {
@@ -40,7 +39,7 @@ type StatusResponse struct {
 }
 
 func (s *StatusResponse) ID() int32 {
-	return packets.IDStatusResponse
+	return IDStatusResponse
 }
 
 func (s *StatusResponse) State() int32 {

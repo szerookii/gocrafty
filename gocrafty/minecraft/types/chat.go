@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"log"
 )
 
 type Chat struct {
