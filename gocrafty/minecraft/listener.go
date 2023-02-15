@@ -124,6 +124,8 @@ func (l *Listener) handleConn(conn *socket.Conn) {
 		if err != nil {
 			if err != nil {
 				if p, ok := l.players[conn.UUID().String()]; ok {
+					l.logger.Infof("Player %s disconnected", conn.Username())
+
 					l.PlayerCount.Add(-1)
 					l.RemovePlayer(p)
 				}
