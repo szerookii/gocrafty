@@ -1,3 +1,5 @@
+github.com/Tnze/go-mc v1.19.2 h1:g2KKNeeBO4ZzgXp/hjCK/gm/8YRhx1QXdlcqkps8KdE=
+github.com/Tnze/go-mc v1.19.2/go.mod h1:uNMPHRugYj2nXIHbmm8XTQJ1NpQAC2p214es9BIC5Rc=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/kataras/golog v0.1.8 h1:isP8th4PJH2SrbkciKnylaND9xoTtfxv++NB+DF0l9g=

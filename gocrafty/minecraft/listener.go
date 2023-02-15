@@ -140,6 +140,11 @@ func (l *Listener) handleConn(conn *socket.Conn) {
 			}
 		}
 
+		if p == nil {
+			//l.logger.Errorf("Got an unknown packet with ID: %v", p)
+			continue
+		}
+
 		if conn.State == types.StateDisconnect {
 			break
 		}
@@ -296,6 +301,8 @@ func (l *Listener) AddPlayer(c *socket.Conn) {
 	}()
 
 	go p.Conn().KeepAliveTicker()
+
+	p.JoinGame()
 }
 
 func (l *Listener) RemovePlayer(p *player.Player) {

@@ -20,7 +20,7 @@ func NewServer(config *ServerConfig) *Server {
 	return &Server{
 		config:     config,
 		incoming:   make(chan *player.Player),
-		disconnect: make(chan *player.Player),
+		disconnect: make(chan *player.Player), // TODO: maybe its useless
 	}
 }
 
@@ -42,16 +42,12 @@ func (s *Server) Listen() error {
 	return nil
 }
 
-func (s *Server) Accept() bool {
+func (s *Server) Accept() *player.Player {
 	if !s.started.Load() {
-		return false
+		return nil
 	}
 
-	p := <-s.incoming
-
-	s.config.Logger.Debugf("New connection from %s", p.Conn().RemoteAddr())
-
-	return true
+	return <-s.incoming
 }
 
 func (s *Server) Listener() *minecraft.Listener {
