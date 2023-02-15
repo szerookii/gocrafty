@@ -2,6 +2,7 @@ package minecraft
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/szerookii/gocrafty/gocrafty/logger"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/protocol/packet"
@@ -184,7 +185,7 @@ func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
 				} else {
 					c.WritePacket(&login.Disconnect{
 						Reason: types.Chat{
-							Text:  "Invalid protocol version",
+							Text:  fmt.Sprintf("Outdated server! I'm still on %s", Version),
 							Bold:  true,
 							Color: "red",
 						},
