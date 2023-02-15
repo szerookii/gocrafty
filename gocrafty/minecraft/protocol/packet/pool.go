@@ -8,89 +8,57 @@ import (
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
 )
 
-var (
-	registeredHandshakePakets = map[int32]Packet{}
-	registeredStatusPackets   = map[int32]Packet{}
-	registeredLoginPackets    = map[int32]Packet{}
-	registeredPlayPackets     = map[int32]Packet{}
-)
+type Pool struct {
+	handshakePackets, statusPackets, loginPackets, playPackets map[int32]Packet
+}
+
+func NewPool() Pool {
+	return Pool{
+		handshakePackets: make(map[int32]Packet),
+		statusPackets:    make(map[int32]Packet),
+		loginPackets:     make(map[int32]Packet),
+		playPackets:      make(map[int32]Packet),
+	}
+}
+
+func (p Pool) Get(state, id int32) (Packet, bool) {
+	switch state {
+	case types.StateHandshaking:
+		if pk, ok := p.handshakePackets[id]; ok {
+			return pk, true
+		}
+	case types.StateStatus:
+		if pk, ok := p.statusPackets[id]; ok {
+			return pk, true
+		}
+	case types.StateLogin:
+		if pk, ok := p.loginPackets[id]; ok {
+			return pk, true
+		}
+	case types.StatePlay:
+		if pk, ok := p.playPackets[id]; ok {
+			return pk, true
+		}
+	}
+	return nil, false
+}
 
 func Register(id int32, pk Packet) {
 	switch pk.State() {
 	case types.StateHandshaking:
-		registeredHandshakePakets[id] = pk
+		pool.handshakePackets[id] = pk
 	case types.StateStatus:
-		registeredStatusPackets[id] = pk
+		pool.statusPackets[id] = pk
 	case types.StateLogin:
-		registeredLoginPackets[id] = pk
+		pool.loginPackets[id] = pk
 	case types.StatePlay:
-		registeredPlayPackets[id] = pk
+		pool.playPackets[id] = pk
 	}
-}
-
-type Pool struct {
-	handshakePakets map[int32]Packet
-	statusPackets   map[int32]Packet
-	loginPackets    map[int32]Packet
-	playPackets     map[int32]Packet
-}
-
-func NewPool() Pool {
-	p := Pool{
-		handshakePakets: map[int32]Packet{},
-		statusPackets:   map[int32]Packet{},
-		loginPackets:    map[int32]Packet{},
-		playPackets:     map[int32]Packet{},
-	}
-
-	for id, pk := range registeredHandshakePakets {
-		p.handshakePakets[id] = pk
-	}
-
-	for id, pk := range registeredStatusPackets {
-		p.statusPackets[id] = pk
-	}
-
-	for id, pk := range registeredLoginPackets {
-		p.loginPackets[id] = pk
-	}
-
-	for id, pk := range registeredPlayPackets {
-		p.playPackets[id] = pk
-	}
-
-	return p
-}
-
-func (p Pool) Get(state int32, id int32) (Packet, bool) {
-	switch state {
-	case types.StateHandshaking:
-		pk, ok := p.handshakePakets[id]
-		return pk, ok
-	case types.StateStatus:
-		pk, ok := p.statusPackets[id]
-		return pk, ok
-	case types.StateLogin:
-		pk, ok := p.loginPackets[id]
-		return pk, ok
-	case types.StatePlay:
-		pk, ok := p.playPackets[id]
-		return pk, ok
-	}
-
-	return nil, false
 }
 
 func init() {
-	// Handshake
 	Register(packets.IDHandshake, &handshake.Handshake{})
-
-	// Status
 	Register(packets.IDStatusRequest, &status.StatusRequest{})
 	Register(packets.IDPing, &status.PingRequest{})
-
-	// Login
 	Register(packets.IDLoginStart, &login.LoginStart{})
-
-	// Play
 }
