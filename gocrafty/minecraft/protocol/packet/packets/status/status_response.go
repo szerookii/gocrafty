@@ -44,13 +44,11 @@ func (s *StatusResponse) ID() int32 {
 }
 
 func (s *StatusResponse) State() int32 {
-	return 0 // not used
+	return types.StateLogin
 }
 
 func (s *StatusResponse) Marshal(w *protocol.Writer) {
 	w.JSON(s.JSONResponse)
 }
 
-func (s *StatusResponse) Unmarshal(r *protocol.Reader) {
-	panic("implement me")
-}
+func (s *StatusResponse) Unmarshal(r *protocol.Reader) {}
