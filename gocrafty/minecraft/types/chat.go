@@ -21,7 +21,7 @@ type Chat struct {
 func (m Chat) JSON() []byte {
 	code, err := json.Marshal(m)
 	if err != nil {
-		log.Panicln(err)
+		panic(err)
 	}
 
 	return code
