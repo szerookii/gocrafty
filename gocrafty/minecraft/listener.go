@@ -77,16 +77,16 @@ func (l *Listener) Listen() (*Listener, error) {
 }
 
 func (l *Listener) listen() {
-	go func() {
-		ticker := time.NewTicker(time.Second * 4)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-l.close:
-				return
-			}
+	for {
+		netConn, err := l.listener.Accept()
+		if err != nil {
+			l.logger.Errorf("Got an error accepting connection: %v", err)
+			continue
 		}
+
+		l.createConn(netConn)
+	}
+}
 	}()
 
 	defer func() {
