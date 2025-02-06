@@ -93,5 +93,11 @@ func init() {
 	Register(login.IDLoginStart, &login.LoginStart{})
 
 	// Play
-	Register(play.IDKeepAlive, &play.KeepAlive{})
+	Register(play.IDServerKeepAlive, &play.KeepAlive{})
+	Register(play.IDServerPlayer, &play.Player{})
+	Register(play.IDServerAnimation, &play.ServerAnimation{})
+	Register(play.IDServerEntityAction, &play.EntityAction{})
+	Register(play.IDServerChatMessage, &play.ServerChatMessage{})
+	Register(play.IDServerPlayerPosition, &play.PlayerPosition{})
+	Register(play.IDServerPlayerPositionAndLook, &play.ServerPlayerPositionAndLook{})
 }

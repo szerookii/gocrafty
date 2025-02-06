@@ -17,6 +17,8 @@ import (
 type Conn struct {
 	net.Conn
 
+	rwMutex sync.RWMutex
+
 	sendMutex sync.Mutex
 	conn      net.Conn
 
@@ -29,7 +31,7 @@ type Conn struct {
 	recvBuffer   [65565]byte
 	decompBuffer [65565]byte // TODO: implement compression/decompression and give sense to this buffer cuz it's useless rn xd
 
-	State int32
+	state int32
 	close chan bool
 }
 
@@ -39,7 +41,7 @@ func NewConn(conn net.Conn) *Conn {
 
 		conn:   conn,
 		reader: bufio.NewReader(conn),
-		State:  types.StateHandshaking,
+		state:  types.StateHandshaking,
 
 		close: make(chan bool),
 	}
@@ -84,9 +86,11 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 	var packetId int32
 	reader.VarInt(&packetId)
 
-	p, ok := pool.Get(c.State, packetId)
+	p, ok := pool.Get(c.State(), packetId)
 	if !ok {
-		return nil, err
+		return &packet.RawPacket{
+			IDField: packetId,
+		}, nil
 	}
 
 	p.Unmarshal(&reader)
@@ -95,7 +99,7 @@ func (c *Conn) ReadPacket() (packet.Packet, error) {
 }
 
 func (c *Conn) KeepAliveTicker() {
-	ticker := time.NewTicker(20 * time.Second)
+	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -112,19 +116,45 @@ func (c *Conn) KeepAliveTicker() {
 }
 
 func (c *Conn) Username() string {
+	c.rwMutex.RLock()
+	defer c.rwMutex.RUnlock()
+
 	return c.username
 }
 
 func (c *Conn) SetUsername(username string) {
+	c.rwMutex.Lock()
+	defer c.rwMutex.Unlock()
+
 	c.username = username
 }
 
 func (c *Conn) UUID() uuid.UUID {
+	c.rwMutex.RLock()
+	defer c.rwMutex.RUnlock()
+
 	return c.uuid
 }
 
 func (c *Conn) SetUUID(uuid uuid.UUID) {
+	c.rwMutex.Lock()
+	defer c.rwMutex.Unlock()
+
 	c.uuid = uuid
+}
+
+func (c *Conn) State() int32 {
+	c.rwMutex.RLock()
+	defer c.rwMutex.RUnlock()
+
+	return c.state
+}
+
+func (c *Conn) SetState(state int32) {
+	c.rwMutex.Lock()
+	defer c.rwMutex.Unlock()
+
+	c.state = state
 }
 
 func (c *Conn) Close(reason string) error {
@@ -135,7 +165,7 @@ func (c *Conn) Close(reason string) error {
 		},
 	})
 
-	c.State = types.StateDisconnect
+	c.SetState(types.StateDisconnect)
 
 	close(c.close)
 

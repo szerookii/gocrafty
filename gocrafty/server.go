@@ -1,9 +1,11 @@
 package gocrafty
 
 import (
+	"encoding/base64"
 	"errors"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft"
 	"github.com/szerookii/gocrafty/gocrafty/player"
+	"os"
 	"sync/atomic"
 )
 
@@ -29,11 +31,15 @@ func (s *Server) Listen() error {
 		return errors.New("server already started")
 	}
 
-	s.listener = minecraft.NewListener(s.incoming, s.disconnect, s.config.Logger, s.config.ServerName, s.config.BoundAddress, s.config.MaxPlayers, s.config.OnlineMode)
-
-	_, err := s.listener.Listen()
-
+	fileData, err := os.ReadFile(s.config.Favicon)
 	if err != nil {
+		return errors.New("failed to read favicon file: " + err.Error())
+	}
+
+	base64favicon := "data:image/png;base64," + base64.StdEncoding.EncodeToString(fileData)
+	s.listener = minecraft.NewListener(s.incoming, s.disconnect, s.config.Logger, s.config.ServerName, base64favicon, s.config.BoundAddress, s.config.MaxPlayers, s.config.OnlineMode)
+
+	if _, err := s.listener.Listen(); err != nil {
 		return err
 	}
 

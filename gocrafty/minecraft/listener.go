@@ -26,6 +26,7 @@ type Listener struct {
 
 	logger     logger.Logger
 	name       string
+	favicon    string
 	address    string
 	maxPlayers int
 	onlineMode bool
@@ -34,8 +35,7 @@ type Listener struct {
 	listener    net.Listener
 	pool        packet.Pool
 
-	pmu     sync.RWMutex
-	players map[string]*player.Player
+	playerList *player.PlayerList
 
 	incoming   chan *player.Player
 	disconnect chan *player.Player
@@ -43,17 +43,18 @@ type Listener struct {
 	close chan struct{}
 }
 
-func NewListener(incoming, disconnect chan *player.Player, logger logger.Logger, name, addr string, maxPlayers int, onlineMode bool) *Listener {
+func NewListener(incoming, disconnect chan *player.Player, logger logger.Logger, name, favicon, addr string, maxPlayers int, onlineMode bool) *Listener {
 	return &Listener{
 		logger:     logger,
 		name:       name,
+		favicon:    favicon,
 		address:    addr,
 		maxPlayers: maxPlayers,
 		onlineMode: onlineMode,
 
 		pool: packet.NewPool(),
 
-		players: make(map[string]*player.Player),
+		playerList: player.NewPlayerList(),
 
 		incoming:   incoming,
 		disconnect: disconnect,
@@ -124,34 +125,26 @@ func (l *Listener) handleConn(conn *socket.Conn) {
 		p, err := conn.ReadPacket()
 
 		if err != nil {
-			if err != nil {
-				if p, ok := l.players[conn.UUID().String()]; ok {
-					l.logger.Infof("Player %s disconnected", conn.Username())
+			if p, ok := l.playerList.Get(conn.UUID()); ok {
+				l.logger.Infof("Player %s disconnected", conn.Username())
 
-					l.PlayerCount.Add(-1)
-					l.RemovePlayer(p)
-				}
-
-				if !errors.Is(err, io.EOF) {
-					l.logger.Errorf("Got an error receving packet: %v", err)
-				}
-
-				break
+				l.PlayerCount.Add(-1)
+				l.RemovePlayer(p)
 			}
-		}
 
-		if p == nil {
-			//l.logger.Errorf("Got an unknown packet with ID: %v", p)
-			continue
-		}
+			if !errors.Is(err, io.EOF) {
+				l.logger.Errorf("Got an error receving packet: %v", err)
+			}
 
-		if conn.State == types.StateDisconnect {
 			break
 		}
 
-		// packet handling
-		if conn.State == types.StatePlay {
-			pl, ok := l.players[conn.UUID().String()]
+		if conn.State() == types.StateDisconnect {
+			break
+		}
+
+		if conn.State() == types.StatePlay {
+			pl, ok := l.playerList.Get(conn.UUID())
 			if !ok {
 				l.logger.Errorf("Got a packet from a player that is not in the player list")
 				break
@@ -159,7 +152,7 @@ func (l *Listener) handleConn(conn *socket.Conn) {
 
 			handler, ok := handler.GetHandler(p.ID())
 			if !ok {
-				l.logger.Errorf("Got a packet but no handler for it: %v", p.ID())
+				l.logger.Errorf("Got a packet but no handler for it: 0x%x", p.ID())
 				continue
 			}
 
@@ -179,7 +172,7 @@ func (l *Listener) handleConn(conn *socket.Conn) {
 }
 
 func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
-	switch c.State {
+	switch c.State() {
 
 	// Handshaking
 	case types.StateHandshaking:
@@ -187,7 +180,7 @@ func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
 		case *handshake.Handshake:
 			switch dp.NextState {
 			case 1:
-				c.State = types.StateStatus
+				c.SetState(types.StateStatus)
 
 			case 2:
 				if dp.ProtocolVersion == ProtocolVersion {
@@ -200,14 +193,14 @@ func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
 							},
 						})
 
-						c.State = types.StateDisconnect
+						c.SetState(types.StateDisconnect)
 
 						return
 					}
 
 					l.PlayerCount.Add(1)
 
-					c.State = types.StateLogin
+					c.SetState(types.StateLogin)
 				} else {
 					c.WritePacket(&login.Disconnect{
 						Reason: types.Chat{
@@ -217,7 +210,7 @@ func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
 						},
 					})
 
-					c.State = types.StateDisconnect
+					c.SetState(types.StateDisconnect)
 				}
 			}
 		}
@@ -239,6 +232,7 @@ func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
 					Description: &status.StatusResponseDataDescription{
 						Text: l.Name(),
 					},
+					Favicon: l.Favicon(),
 				},
 			})
 
@@ -253,7 +247,7 @@ func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
 		switch dp := p.(type) {
 		case *login.LoginStart:
 			l.Logger().Infof("Player %s connected", dp.Username)
-			c.State = types.StatePlay
+			c.SetState(types.StatePlay)
 
 			// TODO: Verify player online mode
 
@@ -266,13 +260,13 @@ func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
 				// TODO: Send encryption request
 			} else {
 				uuid := uuid.New()
-				uuid.UnmarshalText([]byte("00000000-0000-0000-0000-000000000000"))
+				uuid.UnmarshalText([]byte("OfflinePlayer:" + dp.Username))
 
 				c.SetUsername(dp.Username)
 				c.SetUUID(uuid)
 
 				c.WritePacket(&login.LoginSuccess{
-					UUID:     "00000000-0000-0000-0000-000000000000",
+					UUID:     uuid.String(),
 					Username: dp.Username,
 				})
 
@@ -283,18 +277,13 @@ func (l *Listener) handlePacket(c *socket.Conn, p packet.Packet) {
 }
 
 func (l *Listener) AddPlayer(c *socket.Conn) {
-	l.pmu.Lock()
-	defer l.pmu.Unlock()
+	p := player.New(l.logger, l.playerList, c.Username(), c.UUID(), c)
 
-	p := player.New(l.logger, c.Username(), c.UUID(), c)
-
-	if _, ok := l.players[c.UUID().String()]; ok {
+	if _, ok := l.playerList.Get(c.UUID()); ok {
 		p.Disconnect("You are already logged in!")
 
 		return
 	}
-
-	l.players[c.UUID().String()] = p
 
 	go func() {
 		l.incoming <- p
@@ -306,10 +295,11 @@ func (l *Listener) AddPlayer(c *socket.Conn) {
 }
 
 func (l *Listener) RemovePlayer(p *player.Player) {
-	l.pmu.Lock()
-	defer l.pmu.Unlock()
+	p.LeaveGame()
 
-	delete(l.players, p.UUID().String())
+	go func() {
+		l.disconnect <- p
+	}()
 }
 
 func (l *Listener) Close() error {
@@ -328,6 +318,13 @@ func (l *Listener) Name() string {
 	defer l.RUnlock()
 
 	return l.name
+}
+
+func (l *Listener) Favicon() string {
+	l.RLock()
+	defer l.RUnlock()
+
+	return l.favicon
 }
 
 func (l *Listener) Address() string {

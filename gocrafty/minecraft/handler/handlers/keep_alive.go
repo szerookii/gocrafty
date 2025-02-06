@@ -9,7 +9,7 @@ import (
 type KeepAliveHandler struct{}
 
 func (h *KeepAliveHandler) PacketID() int32 {
-	return play.IDKeepAlive
+	return play.IDServerKeepAlive
 }
 
 func (h *KeepAliveHandler) Handle(p *player.Player, packet packet.Packet) {

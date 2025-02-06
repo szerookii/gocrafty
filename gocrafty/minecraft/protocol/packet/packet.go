@@ -11,3 +11,19 @@ type Packet interface {
 	// Unmarshal unmarshals the packet from a byte slice.
 	Unmarshal(r *protocol.Reader)
 }
+
+type RawPacket struct {
+	IDField int32
+}
+
+func (p *RawPacket) ID() int32 {
+	return p.IDField
+}
+
+func (p *RawPacket) State() int32 {
+	return -1
+}
+
+func (p *RawPacket) Marshal(_ *protocol.Writer) {}
+
+func (p *RawPacket) Unmarshal(_ *protocol.Reader) {}

@@ -16,7 +16,7 @@ type JoinGame struct {
 }
 
 func (j *JoinGame) ID() int32 {
-	return IDJoinGame
+	return IDClientJoinGame
 }
 
 func (j *JoinGame) State() int32 {

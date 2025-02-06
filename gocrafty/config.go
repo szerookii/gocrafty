@@ -16,6 +16,7 @@ type ServerConfig struct {
 	OnlineMode bool `json:"online_mode"`
 	// ServerName is the name of the server.
 	ServerName string `json:"server_name"`
+	Favicon    string `json:"favicon,omitempty"`
 }
 
 func DefaultConfig() ServerConfig {

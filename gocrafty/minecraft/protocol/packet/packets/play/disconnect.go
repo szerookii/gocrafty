@@ -10,7 +10,7 @@ type Disconnect struct {
 }
 
 func (d *Disconnect) ID() int32 {
-	return IDDisconnect
+	return IDClientDisconnect
 }
 
 func (s *Disconnect) State() int32 {

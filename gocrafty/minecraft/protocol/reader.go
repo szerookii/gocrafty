@@ -115,7 +115,7 @@ func (r *Reader) VarLong(x *int64) {
 	for {
 		var read byte
 		r.Byte(&read)
-		
+
 		value := read & 0b01111111
 		result |= int64(value) << (7 * numRead)
 
@@ -131,7 +131,13 @@ func (r *Reader) VarLong(x *int64) {
 	}
 }
 
-func (r *Reader) ReadUUID(x *uuid.UUID) {
+func (r *Reader) UUID(x *uuid.UUID) {
 	uuid, _ := uuid.FromBytes(r.ReadBytes(16))
 	*x = uuid
+}
+
+func (r *Reader) Angle(x *float32) {
+	var b byte
+	r.Byte(&b)
+	*x = float32(b) * 360 / 256
 }

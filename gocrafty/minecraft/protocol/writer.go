@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/szerookii/gocrafty/gocrafty/minecraft/types"
+	"math"
 )
 
 type Writer struct {
@@ -29,7 +30,7 @@ func (w *Writer) Bool(x bool) {
 }
 
 func (w *Writer) Short(x int16) {
-	w.Grow(2)
+	//w.Grow(2)
 	_ = binary.Write(&w.Buffer, binary.BigEndian, x)
 }
 
@@ -106,7 +107,7 @@ func (w *Writer) VarLong(x int64) {
 	}
 }
 
-func (w *Writer) WriteUUID(val uuid.UUID) {
+func (w *Writer) UUID(val uuid.UUID) {
 	b, _ := val.MarshalBinary()
 	w.WriteBytes(b)
 }
@@ -129,11 +130,12 @@ func (w *Writer) JSON(x any) {
 	w.WriteBytes(b)
 }
 
-func (writer *Writer) StartNBT() NbtWriter {
-	return NbtWriter{
-		w:                   writer,
-		hierarchy:           []uint8{},
-		listSizeStack:       []int{},
-		listSizeOffsetStack: []int{},
-	}
+func (w *Writer) FixedPoint(x float64) {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, uint32(x*32))
+	w.WriteBytes(b)
+}
+
+func (w *Writer) Angle(x float32) {
+	w.WriteByte(byte(math.Floor(float64(x) * 256.0 / 360.0)))
 }

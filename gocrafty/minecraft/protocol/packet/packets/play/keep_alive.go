@@ -10,7 +10,7 @@ type KeepAlive struct {
 }
 
 func (k *KeepAlive) ID() int32 {
-	return IDKeepAlive
+	return IDServerKeepAlive
 }
 
 func (k *KeepAlive) State() int32 {
