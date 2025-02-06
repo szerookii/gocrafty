@@ -8,11 +8,11 @@ import (
 
 // Définition des actions
 const (
-	PlayerListItemActionAddPlayer         = 0
-	PlayerListItemActionUpdateGamemode    = 1
-	PlayerListItemActionUpdateLatency     = 2
-	PlayerListItemActionUpdateDisplayName = 3
-	PlayerListItemActionRemovePlayer      = 4
+	PlayerListItemActionAddPlayer = iota
+	PlayerListItemActionUpdateGamemode
+	PlayerListItemActionUpdateLatency
+	PlayerListItemActionUpdateDisplayName
+	PlayerListItemActionRemovePlayer
 )
 
 type PlayerListItemDataInterface interface {

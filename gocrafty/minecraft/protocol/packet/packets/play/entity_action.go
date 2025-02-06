@@ -6,13 +6,13 @@ import (
 )
 
 const (
-	ActionStartSneaking      = 0
-	ActionStopSneaking       = 1
-	ActionLeaveBed           = 2
-	ActionStartSprinting     = 3
-	ActionStopSprinting      = 4
-	ActionJumpWithHorse      = 5
-	ActionOpenHorseInventory = 6
+	ActionStartSneaking = iota
+	ActionStopSneaking
+	ActionLeaveBed
+	ActionStartSprinting
+	ActionStopSprinting
+	ActionJumpWithHorse
+	ActionOpenHorseInventory
 )
 
 type EntityAction struct {
